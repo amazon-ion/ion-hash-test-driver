@@ -40,23 +40,22 @@ def install_ion_hash_js(log):
     log_call(log, 'grunt')
 
 
-def install_noop(log):
+def install_ion_hash_python(log):
     pass
 
 
 ION_BUILDS = {
     'ion-hash-test': NO_OP_BUILD,
-    #'ion-hash-java': IonBuild(install_ion_hash_java, os.path.join('tools', 'cli', 'ion-hash')),
+    'ion-hash-java': IonBuild(install_ion_hash_java, os.path.join('tools', 'cli', 'ion-hash')),
     'ion-hash-js': IonBuild(install_ion_hash_js, os.path.join('tools', 'cli', 'ion-hash')),
-    'ion-hash-python': IonBuild(install_noop, os.path.join('tools', 'cli', 'ion-hash-wrapper')),
+    'ion-hash-python': IonBuild(install_ion_hash_python, os.path.join('tools', 'cli', 'ion-hash-wrapper')),
     # TODO add more implementations here
 }
 
 # Ion Hash implementations hosted in Github. Local implementations may be tested using the `--implementation` argument,
 # and should not be added here. For the proper description format, see the ion_hash_test_driver CLI help.
 ION_IMPLEMENTATIONS = [
-    #'ion-c,https://github.com/amzn/ion-c.git,master',
-    #'ion-hash-java,https://github.com/amzn/ion-hash-java.git,master',
+    'ion-hash-java,https://github.com/amzn/ion-hash-java.git,master',
     'ion-hash-js,https://github.com/amzn/ion-hash-js.git,master',
     'ion-hash-python,https://github.com/amzn/ion-hash-python.git,master',
     # TODO add more implementations here

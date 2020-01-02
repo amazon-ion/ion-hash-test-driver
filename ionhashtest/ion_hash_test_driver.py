@@ -244,11 +244,9 @@ def compare_test(line, report_files, digest_comparisons):
         digest_comparison['digest'] = digest_set.pop()
         digest_matches += 1
     else:
-        impl_digests = []
-        entry = {}
+        impl_digests = {}
         for impl_name, digest in digests.items():
-            entry[impl_name] = digest
-            impl_digests.append(entry)
+            impl_digests[impl_name] = digest
 
         digest_comparison['result'] = SymbolToken('inconsistent', None, None)
         digest_comparison['digests'] = impl_digests
@@ -323,7 +321,7 @@ def ion_hash_test_driver(arguments):
         test_file = output_root + "/tests.ion"
 
         generate_tests(ion_hash_test_dir, test_file)
-        test_file = output_root + "/tests.ion.head"
+        #test_file = output_root + "/tests.ion.head"
 
         for impl in implementations:
             impl.test(test_file, "md5")
