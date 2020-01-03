@@ -2,6 +2,10 @@ from amazon.ion import simpleion
 import base64
 
 
+_ion_prefix = 'ion::'
+_invalid_ion_prefix = 'invalid_ion::'
+
+
 def generate_tests(base_dir, out_filename):
     out = open(out_filename, "w")
 
@@ -12,7 +16,9 @@ def generate_tests(base_dir, out_filename):
     tests = simpleion.loads(ion_hash_tests, single_value=False)
     for test in tests:
         if 'ion' in test:
-            _add_test(out, simpleion.dumps(test['ion'], binary=False, omit_version_marker=True))
+            test_str = simpleion.dumps(test['ion'], binary=False, omit_version_marker=True)
+            if not ('$0' in test_str):
+                _add_test(out, test_str)
         if '10n' in test:
             print('test: 10n')
 
@@ -21,7 +27,7 @@ def generate_tests(base_dir, out_filename):
     f.close()
 
     def _is_test(string):
-        return not (string == '' or string[0] == '#')
+        return not (string == '' or string[0] == '#' or string.startswith(_invalid_ion_prefix))
 
     for line in filter(_is_test, lines):
         for test in test_strings_for(line):
@@ -32,10 +38,6 @@ def generate_tests(base_dir, out_filename):
 
 def _add_test(out, test):
     out.write(test + "\n")
-
-
-_ion_prefix = 'ion::'
-_invalid_ion_prefix = 'invalid_ion::'
 
 
 class _TestValue:
