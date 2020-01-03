@@ -25,8 +25,7 @@ def generate_tests(base_dir, out_filename):
 
     for line in filter(_is_test, lines):
         for test in test_strings_for(line):
-            #_add_test(out, test)
-            pass
+            _add_test(out, test)
 
     out.close()
 
@@ -136,4 +135,3 @@ def test_strings_for(line):
     strings.append(tv.symbol() + "::" + tv.symbol() + "::" + tv.symbol() + "::" + tv.string())
 
     return strings
-

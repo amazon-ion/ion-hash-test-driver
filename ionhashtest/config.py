@@ -46,9 +46,9 @@ def install_ion_hash_python(log):
 
 ION_BUILDS = {
     'ion-hash-test': NO_OP_BUILD,
-    'ion-hash-java': IonBuild(install_ion_hash_java, os.path.join('tools', 'cli', 'ion-hash')),
-    'ion-hash-js': IonBuild(install_ion_hash_js, os.path.join('tools', 'cli', 'ion-hash')),
-    'ion-hash-python': IonBuild(install_ion_hash_python, os.path.join('tools', 'cli', 'ion-hash-wrapper')),
+    'ion-hash-java': IonBuild(install_ion_hash_java, os.path.join('tools', 'ion-hash')),
+    'ion-hash-js': IonBuild(install_ion_hash_js, os.path.join('tools', 'ion-hash')),
+    'ion-hash-python': IonBuild(install_ion_hash_python, os.path.join('tools', 'ion-hash-wrapper')),
     # TODO add more implementations here
 }
 
