@@ -189,8 +189,8 @@ class IonHashImplementation(IonResource):
 
 
 digest_no_comparison = 0
-digest_matches = 0
-digest_inconsistencies = 0
+digest_consistent = 0
+digest_inconsistent = 0
 
 
 def report(impls, test_file):
@@ -213,8 +213,8 @@ def report(impls, test_file):
 
     summary = dict()
     summary['test_count'] = len(digest_comparisons)
-    summary['digest_matches'] = digest_matches
-    summary['digest_inconsistent'] = digest_inconsistencies
+    summary['digest_consistent'] = digest_consistent
+    summary['digest_inconsistent'] = digest_inconsistent
     summary['digest_no_comparison'] = digest_no_comparison
 
     _report['summary'] = summary
@@ -223,8 +223,8 @@ def report(impls, test_file):
 
 def compare_test(line, report_files, digest_comparisons):
     global digest_no_comparison
-    global digest_matches
-    global digest_inconsistencies
+    global digest_consistent
+    global digest_inconsistent
 
     digests = {}
     for impl_name, report_file in report_files.items():
@@ -241,9 +241,9 @@ def compare_test(line, report_files, digest_comparisons):
         digest_comparison['result'] = SymbolToken('no_comparison', None, None)
         digest_no_comparison += 1
     elif len(digest_set) == 1:
-        digest_comparison['result'] = SymbolToken('full_match', None, None)
+        digest_comparison['result'] = SymbolToken('consistent', None, None)
         digest_comparison['digest'] = digest_set.pop()
-        digest_matches += 1
+        digest_consistent += 1
     else:
         impl_digests = {}
         for impl_name, digest in digests.items():
@@ -251,7 +251,7 @@ def compare_test(line, report_files, digest_comparisons):
 
         digest_comparison['result'] = SymbolToken('inconsistent', None, None)
         digest_comparison['digests'] = impl_digests
-        digest_inconsistencies += 1
+        digest_inconsistent += 1
 
     digest_comparison['value'] = line
 
