@@ -155,7 +155,8 @@ class IonResource:
         print('Installing %s revision %s.' % (self._name, self.__revision))
         self.__git_clone_revision()
         os.chdir(self._build_dir)
-        self._build.install(self.__build_log)
+        print('skipping installation step')
+        #self._build.install(self.__build_log)
         os.chdir(self.__output_root)
         print('Done installing %s.' % self.identifier)
         return self._build_dir
@@ -180,7 +181,7 @@ class IonHashImplementation(IonResource):
         if not os.path.isfile(self._executable):
             raise ValueError('Executable for %s does not exist.' % self._name)
 
-        outfile = open(self._name + ".out", "w")
+        outfile = open(os.path.join("build", self._name + ".hashes"), "w")
         _, stderr = Popen([self._executable, algorithm, test_file], stdin=PIPE, stdout=outfile, stderr=PIPE).communicate()
         if len(stderr) > 0:
             print(stderr)
@@ -195,7 +196,7 @@ digest_inconsistencies = 0
 def report(impls, test_file):
     report_files = {}
     for impl in impls:
-        report_files[impl._name] = open(impl._name + ".out")
+        report_files[impl._name] = open(os.path.join("build", impl._name + ".hashes"))
 
     _report = {}
 
@@ -318,10 +319,9 @@ def ion_hash_test_driver(arguments):
         #test_all(implementations, ion_hash_test_dir, test_types, test_file_filter, results_root, results_file)
         '''
 
-        test_file = output_root + "/tests.ion"
+        test_file = os.path.join(output_root, "build", "tests.ion")
 
         generate_tests(ion_hash_test_dir, test_file)
-        #test_file = output_root + "/tests.ion.head"
 
         for impl in implementations:
             impl.test(test_file, "md5")
