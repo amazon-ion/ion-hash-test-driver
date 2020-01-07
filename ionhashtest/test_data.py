@@ -1,5 +1,6 @@
-from amazon.ion import simpleion
+import amazon.ion.simpleion as ion
 import base64
+import os
 
 
 _ion_prefix = 'ion::'
@@ -7,37 +8,43 @@ _invalid_ion_prefix = 'invalid_ion::'
 
 
 def generate_tests(base_dir, out_filename):
-    out = open(out_filename, "w")
+    text_filename = out_filename + ".ion"
+    text_file = open(text_filename, "w")
 
-    f = open(base_dir + '/ion_hash_tests.ion')
-    ion_hash_tests = f.read()
-    f.close()
+    binary_filename = out_filename + ".10n"
+    binary_file = open(binary_filename, "wb")
 
-    tests = simpleion.loads(ion_hash_tests, single_value=False)
+    with open(os.path.join(base_dir, "ion_hash_tests.ion")) as f:
+        ion_hash_tests = f.read()
+
+    tests = ion.loads(ion_hash_tests, single_value=False)
     for test in tests:
         if 'ion' in test:
-            test_str = simpleion.dumps(test['ion'], binary=False, omit_version_marker=True)
-            if not ('$0' in test_str):
-                _add_test(out, test_str)
+            test_text = ion.dumps(test['ion'], binary=False, omit_version_marker=True)
+            if not ('$0' in test_text):
+                text_file.write(test_text + "\n")
+                test_binary = ion.dumps(test['ion'], binary=True)
+                binary_file.write(test_binary)
         if '10n' in test:
-            print('test: 10n')
+            bytes = sexp_to_bytearray(test['10n'])
+            binary_file.write(bytes)
 
-    f = open(base_dir + '/big_list_of_naughty_strings.txt')
-    lines = [line.rstrip('\n') for line in f]
-    f.close()
+    '''
+    with open(os.path.join(base_dir, "big_list_of_naughty_strings.txt")) as f:
+        lines = [line.rstrip('\n') for line in f]
 
     def _is_test(string):
         return not (string == '' or string[0] == '#' or string.startswith(_invalid_ion_prefix))
 
     for line in filter(_is_test, lines):
         for test in test_strings_for(line):
-            _add_test(out, test)
+            text_file.write(test + "\n")
+    '''
 
-    out.close()
+    text_file.close()
+    binary_file.close()
 
-
-def _add_test(out, test):
-    out.write(test + "\n")
+    return [text_filename, binary_filename]
 
 
 class _TestValue:
@@ -137,3 +144,10 @@ def test_strings_for(line):
     strings.append(tv.symbol() + "::" + tv.symbol() + "::" + tv.symbol() + "::" + tv.string())
 
     return strings
+
+
+def sexp_to_bytearray(sexp):
+    ba = bytearray()
+    for b in sexp:
+        ba.append(b)
+    return ba

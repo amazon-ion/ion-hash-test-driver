@@ -49,18 +49,13 @@ Options:
 """
 import os
 import shutil
-from io import FileIO
 from subprocess import check_call, check_output, Popen, PIPE
 import six
 from amazon.ion import simpleion
-from amazon.ion.core import IonType
-from amazon.ion.simple_types import IonPySymbol, IonPyList
 from amazon.ion.symbols import SymbolToken
-from amazon.ion.util import Enum
 from docopt import docopt
 
-from ionhashtest.config import TOOL_DEPENDENCIES, ION_BUILDS, ION_IMPLEMENTATIONS, ION_HASH_TEST_SOURCE,\
-    RESULTS_FILE_DEFAULT
+from ionhashtest.config import TOOL_DEPENDENCIES, ION_BUILDS, ION_IMPLEMENTATIONS, ION_HASH_TEST_SOURCE
 from ionhashtest.util import COMMAND_SHELL, log_call
 from ionhashtest.test_data import generate_tests
 
@@ -169,7 +164,7 @@ class IonHashImplementation(IonResource):
         """
         super(IonHashImplementation, self).__init__(output_root, name, location, revision)
 
-    def test(self, test_file, algorithm):
+    def test(self, test_files, algorithm):
         print("Running %s..." % self._name)
 
         if self._build_dir is None:
@@ -181,11 +176,11 @@ class IonHashImplementation(IonResource):
         if not os.path.isfile(self._executable):
             raise ValueError('Executable for %s does not exist.' % self._name)
 
-        outfile = open(os.path.join("build", self._name + ".hashes"), "w")
-        _, stderr = Popen([self._executable, algorithm, test_file], stdin=PIPE, stdout=outfile, stderr=PIPE).communicate()
-        if len(stderr) > 0:
-            print(stderr)
-        outfile.close()
+        with open(os.path.join("build", self._name + ".hashes"), "w") as outfile:
+            for test_file in test_files:
+                _, stderr = Popen([self._executable, algorithm, test_file], stdin=PIPE, stdout=outfile, stderr=PIPE).communicate()
+                if len(stderr) > 0:
+                    print(stderr)
 
 
 digest_no_comparison = 0
@@ -193,42 +188,48 @@ digest_consistent = 0
 digest_inconsistent = 0
 
 
-def report(impls, test_file):
-    report_files = {}
+def generate_report(impls, test_files):
+    hash_files = {}
     for impl in impls:
-        report_files[impl._name] = open(os.path.join("build", impl._name + ".hashes"))
+        hash_files[impl._name] = open(os.path.join("build", impl._name + ".hashes"))
 
-    _report = {}
+    files = dict()
+    for test_file in test_files:
+        is_binary = test_file.endswith(".10n")
+        with open(test_file, 'rb' if is_binary else 'r') as f:
+            content = f.read()
+        tests = simpleion.loads(content, single_value=False)
 
-    digest_comparisons = []
-    with open(test_file) as tf:
-        for line in tf:
-            line = line.rstrip()
-            compare_test(line, report_files, digest_comparisons)
+        digest_comparisons = []
+        for test in tests:
+            compare_test(test, hash_files, digest_comparisons)
 
-    for report_file in report_files.values():
-        report_file.close()
+        files[test_file] = dict()
+        files[test_file]['digests'] = digest_comparisons
 
-    _report['digests'] = digest_comparisons
+    for hash_file in hash_files.values():
+        hash_file.close()
 
     summary = dict()
-    summary['test_count'] = len(digest_comparisons)
+    summary['test_count'] = digest_consistent + digest_inconsistent + digest_no_comparison
     summary['digest_consistent'] = digest_consistent
     summary['digest_inconsistent'] = digest_inconsistent
     summary['digest_no_comparison'] = digest_no_comparison
 
-    _report['summary'] = summary
-    return _report
+    report = dict()
+    report['files'] = files
+    report['summary'] = summary
+    return report
 
 
-def compare_test(line, report_files, digest_comparisons):
+def compare_test(value, hash_files, digest_comparisons):
     global digest_no_comparison
     global digest_consistent
     global digest_inconsistent
 
     digests = {}
-    for impl_name, report_file in report_files.items():
-        digest = report_file.readline().rstrip()
+    for impl_name, hash_file in hash_files.items():
+        digest = hash_file.readline().rstrip()
         if digest.startswith("[unable to digest"):
             digests[impl_name] = "[unable to digest]"
         else:
@@ -253,8 +254,7 @@ def compare_test(line, report_files, digest_comparisons):
         digest_comparison['digests'] = impl_digests
         digest_inconsistent += 1
 
-    digest_comparison['value'] = line
-
+    digest_comparison['value'] = simpleion.dumps(value, binary=False, omit_version_marker=True)
     digest_comparisons.append(digest_comparison)
 
 
@@ -319,14 +319,13 @@ def ion_hash_test_driver(arguments):
         #test_all(implementations, ion_hash_test_dir, test_types, test_file_filter, results_root, results_file)
         '''
 
-        test_file = os.path.join(output_root, "build", "tests.ion")
 
-        generate_tests(ion_hash_test_dir, test_file)
+        test_files = generate_tests(ion_hash_test_dir, os.path.join(output_root, "build", "tests"))
 
         for impl in implementations:
-            impl.test(test_file, "md5")
+            impl.test(test_files, "md5")
 
-        the_report = report(implementations, test_file)
+        the_report = generate_report(implementations, test_files)
         print(simpleion.dumps(the_report, binary=False, indent='  '))
 
 if __name__ == '__main__':
