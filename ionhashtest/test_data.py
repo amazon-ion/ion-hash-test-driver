@@ -26,6 +26,13 @@ _invalid_ion_prefix = 'invalid_ion::'
 
 
 def generate_tests(base_dir, out_dir, test_files=[]):
+    """
+    Converts source test files into a stream of Ion values to be hashed.
+    :param base_dir: Directory containing source test files.
+    :param out_dir: Directory to write files containing Ion values to be hashed.
+    :param test_files: If not empty, narrows the set of source test files.
+    :return: List of filenames containing Ion avlues to be hashed.
+    """
     files = []
     if 'ion_hash_test.ion' in test_files:
         files.extend(generate_tests_ion_hash_tests(base_dir, out_dir))
@@ -39,6 +46,10 @@ def generate_tests(base_dir, out_dir, test_files=[]):
 
 
 def generate_tests_ion_hash_tests(base_dir, out_dir):
+    """
+    Writes each test value in ion_hash_test.ion as a top-level value in new files
+    "<out_dir>/ion_hash_tests.ion" and "<out_dir>/ion_hash_tests.10n".
+    """
     with open(os.path.join(out_dir, "ion_hash_tests.ion"), "w") as text_file, \
             open(os.path.join(out_dir, "ion_hash_tests.10n"), "wb") as binary_file:
 
@@ -54,13 +65,17 @@ def generate_tests_ion_hash_tests(base_dir, out_dir):
                     test_binary = ion.dumps(test['ion'], binary=True)
                     binary_file.write(test_binary)
             if '10n' in test:
-                bytes = sexp_to_bytearray(test['10n'])
-                binary_file.write(bytes)
+                sexp_bytes = sexp_to_bytearray(test['10n'])
+                binary_file.write(sexp_bytes)
 
         return [text_file.name, binary_file.name]
 
 
 def generate_tests_big_list_of_naughty_strings(base_dir, out_dir):
+    """
+    Writes each test string in big_list_of_naughty_strings.ion as a series of top-level value
+    in new files "<out_dir>/big_list_of_naughty_strings.ion" and "<out_dir>/big_list_of_naughty_strings.10n".
+    """
     with open(os.path.join(out_dir, "big_list_of_naughty_strings.ion"), "w") as text_file, \
             open(os.path.join(out_dir, "big_list_of_naughty_strings.10n"), "wb") as binary_file:
 
@@ -122,6 +137,10 @@ class _TestValue:
 
 
 def test_strings_for(line):
+    """
+    For the provided `line`, returns a list of strings that represent Ion values using `line` in
+    a variety of ways.
+    """
     strings = []
     tv = _TestValue(line)
 
@@ -178,6 +197,10 @@ def test_strings_for(line):
 
 
 def sexp_to_bytearray(sexp):
+    """
+    Utility that converts an sexp that represents a byte array (as found in ion_hash_test.ion)
+    to an actual bytearray.
+    """
     ba = bytearray()
     for b in sexp:
         ba.append(b)

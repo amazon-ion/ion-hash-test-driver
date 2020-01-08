@@ -50,5 +50,5 @@ class IonBuild:
 def install_no_op(log):
     pass
 
-NO_OP_BUILD = IonBuild(install_no_op, None)
 
+NO_OP_BUILD = IonBuild(install_no_op, None)

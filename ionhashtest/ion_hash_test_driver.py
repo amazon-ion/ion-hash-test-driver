@@ -153,7 +153,13 @@ class IonHashImplementation(IonResource):
         """
         super(IonHashImplementation, self).__init__(output_root, name, location, revision)
 
-    def test(self, test_files, algorithm):
+    def execute(self, test_files, algorithm):
+        """
+        Asks this implementation to hash all the values in the specified files using the specified hash algorithm.
+        For each test file, a file is written containing the hashes of each value from the test file.
+        :param test_files: List of files containing one or more Ion values to hash.
+        :param algorithm: The algorithm to use (e.g., "md5" or "sha1")
+        """
         print("Running %s..." % self.name)
 
         if self._build_dir is None:
@@ -174,6 +180,56 @@ class IonHashImplementation(IonResource):
 
 
 def generate_results(impls, test_files, results_file):
+    """
+    Compares hashes produced by the implementations and writes test results to `results_file`.
+    Results are structured as follows:
+    {
+      files: {
+        'ion_hash_tests.ion': {
+          digests: [
+            {
+              digest: "0f 50 c5 e5 e8 77 b4 45 1a a9 fe 77 c3 76 cd e4",
+              result: consistent,
+              value: "null"
+            },
+            ...
+          ],
+          file_summary: {
+            digest_consistent: 10,
+            test_count: 10,
+          },
+        },
+        'ion_hash_tests.10n': {
+          digests: [
+            {
+              digests: {
+                'ion-hash-java': "0f 50 c5 e5 e8 77 b4 45 1a a9 fe 77 c3 76 cd e4",
+                'ion-hash-js': "[unable to digest]",
+                'ion-hash-python': "0f 50 c5 e5 e8 77 b4 45 1a a9 fe 77 c3 76 cd e4",
+              },
+              result: inconsistent,
+              value: "null"
+            },
+            ...
+          ],
+          file_summary: {
+            digest_inconsistent: 2,
+            digest_no_comparison: 3,
+            test_count: 5,
+          },
+        },
+      },
+      summary: {
+        digest_consistent: 10,
+        digest_inconsistent: 2,
+        digest_no_comparison: 3,
+        test_count: 15,
+      },
+    }
+    :param impls: List of implementations that were tested.
+    :param test_files: List of files that were hashed by each implementation.
+    :param results_file: Filename to write the results to.
+    """
     counters = defaultdict(int)
 
     files = dict()
@@ -190,7 +246,7 @@ def generate_results(impls, test_files, results_file):
         digest_comparisons = []
         file_counters = defaultdict(int)
         for test in tests:
-            result = compare_test(test, hash_files, digest_comparisons)
+            result = compare_digests(test, hash_files, digest_comparisons)
             file_counters[result] += 1
             counters[result] += 1
 
@@ -220,7 +276,15 @@ def generate_results(impls, test_files, results_file):
     print("Results written to %s" % results_file)
 
 
-def compare_test(value, hash_files, digest_comparisons):
+def compare_digests(value, hash_files, digest_comparisons):
+    """
+    For the given test value, reads the hash computed by each impl and determines whether
+    the implementations are consistent or inconsistent.
+    :param value: the Ion value to compare hashes of
+    :param hash_files: dict of implementation name to an open file object of hashes produced by that implementation.
+    :param digest_comparisons: a dict summarizing the result for `value`
+    :return: 'consistent', 'inconsistent', or 'no_comparison'
+    """
     digests = {}
     for impl_name, hash_file in hash_files.items():
         digest = hash_file.readline().rstrip()
@@ -311,7 +375,7 @@ def ion_hash_test_driver(arguments):
             sys.exit(1)
 
         for impl in implementations:
-            impl.test(test_files, "md5")
+            impl.execute(test_files, "md5")
 
         results_file = os.path.join(output_root, "build", arguments['--results-file'] or RESULTS_FILE_DEFAULT)
         generate_results(implementations, test_files, results_file)

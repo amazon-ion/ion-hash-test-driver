@@ -59,4 +59,3 @@ ION_IMPLEMENTATIONS = [
     'ion-hash-python,https://github.com/amzn/ion-hash-python.git,master',
     # TODO add more implementations here
 ]
-
