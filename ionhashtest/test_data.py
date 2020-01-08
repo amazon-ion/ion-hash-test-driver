@@ -1,3 +1,21 @@
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at:
+#
+#    http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is
+# distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
+# OF ANY KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations under the
+# License.
+
+"""
+Logic for generating the files to be used for testing.
+"""
+
 import amazon.ion.simpleion as ion
 import base64
 import os
@@ -7,9 +25,17 @@ _ion_prefix = 'ion::'
 _invalid_ion_prefix = 'invalid_ion::'
 
 
-def generate_tests(base_dir, out_dir):
-    return [*generate_tests_ion_hash_tests(base_dir, out_dir), \
-            *generate_tests_big_list_of_naughty_strings(base_dir, out_dir)]
+def generate_tests(base_dir, out_dir, test_files=[]):
+    files = []
+    if 'ion_hash_test.ion' in test_files:
+        files.extend(generate_tests_ion_hash_tests(base_dir, out_dir))
+    if 'big_list_of_naughty_strings.txt' in test_files:
+        files.extend(generate_tests_big_list_of_naughty_strings(base_dir, out_dir))
+    if len(test_files) == 0:
+        files.extend(generate_tests_ion_hash_tests(base_dir, out_dir))
+        files.extend(generate_tests_big_list_of_naughty_strings(base_dir, out_dir))
+
+    return files
 
 
 def generate_tests_ion_hash_tests(base_dir, out_dir):

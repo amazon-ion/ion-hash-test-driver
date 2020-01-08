@@ -12,7 +12,7 @@
 # specific language governing permissions and limitations under the
 # License.
 
-"""Cross-implementation test driver.
+"""Cross-implementation Ion Hash test driver.
 
 Usage:
     ion_hash_test_driver.py [--implementation <description>]... [--ion-hash-test <description>]...
@@ -42,13 +42,14 @@ Options:
     -o, --output-dir <dir>              Root directory for all of this command's output. [default: .]
 
     -r, --results-file <file>           Path to the results output file. By default, this will be placed in a file named
-                                        `ion-test-driver-results.ion` under the directory specified by the
+                                        `ion-hash-test-driver-results.ion` under the directory specified by the
                                         `--output-dir` option.
 
 
 """
 from collections import defaultdict
 import os
+import sys
 import shutil
 from subprocess import check_call, check_output, Popen, PIPE
 import six
@@ -56,7 +57,7 @@ from amazon.ion import simpleion
 from amazon.ion.symbols import SymbolToken
 from docopt import docopt
 
-from ionhashtest.config import TOOL_DEPENDENCIES, ION_BUILDS, ION_IMPLEMENTATIONS, ION_HASH_TEST_SOURCE
+from ionhashtest.config import TOOL_DEPENDENCIES, ION_BUILDS, ION_IMPLEMENTATIONS, ION_HASH_TEST_SOURCE, RESULTS_FILE_DEFAULT
 from ionhashtest.util import COMMAND_SHELL, log_call
 from ionhashtest.test_data import generate_tests
 
@@ -184,7 +185,7 @@ class IonHashImplementation(IonResource):
                     print(stderr)
 
 
-def generate_report(impls, test_files):
+def generate_results(impls, test_files, results_file):
     counters = defaultdict(int)
 
     files = dict()
@@ -222,10 +223,13 @@ def generate_report(impls, test_files):
         summary['digest_' + result] = count
     summary['test_count'] = sum([cnt for cnt in counters.values()])
 
-    report = dict()
-    report['files'] = files
-    report['summary'] = summary
-    return report
+    results = dict()
+    results['files'] = files
+    results['summary'] = summary
+
+    with open(results_file, 'w') as f:
+        f.write(simpleion.dumps(results, binary=False, indent='  '))
+    print("Results written to %s" % results_file)
 
 
 def compare_test(value, hash_files, digest_comparisons):
@@ -305,31 +309,27 @@ def ion_hash_test_driver(arguments):
         implementations = parse_implementations(arguments['--implementation'], output_root)
         if not arguments['--local-only']:
             implementations += parse_implementations(ION_IMPLEMENTATIONS, output_root)
+
         check_tool_dependencies(arguments)
         for implementation in implementations:
             implementation.install()
+
         ion_hash_test_source = arguments['--ion-hash-test'] or ION_HASH_TEST_SOURCE
         ion_hash_test_dir = IonResource(
             output_root, 'ion-hash-test', *tokenize_description(ion_hash_test_source, has_name=False)
         ).install()
 
-        '''
-        results_root = os.path.join(output_root, 'results')
-        results_file = arguments['--results-file'] or RESULTS_FILE_DEFAULT
-
-        test_file_filter = arguments['<test_file>']
-        #test_all(implementations, ion_hash_test_dir, test_types, test_file_filter, results_root, results_file)
-        '''
-
-
-        test_files = generate_tests(ion_hash_test_dir, os.path.join(output_root, "build"))
-        print('test_files:', test_files)
+        test_files = generate_tests(ion_hash_test_dir, os.path.join(output_root, "build"), arguments['<test_file>'])
+        if len(test_files) == 0:
+            print("No files to test, exiting")
+            sys.exit(1)
 
         for impl in implementations:
             impl.test(test_files, "md5")
 
-        the_report = generate_report(implementations, test_files)
-        print(simpleion.dumps(the_report, binary=False, indent='  '))
+        results_file = os.path.join(output_root, "build", arguments['--results-file'] or RESULTS_FILE_DEFAULT)
+        generate_results(implementations, test_files, results_file)
+
 
 if __name__ == '__main__':
     ion_hash_test_driver(docopt(__doc__))

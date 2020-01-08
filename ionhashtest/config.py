@@ -17,11 +17,10 @@ Provides the build logic for Ion Hash resources required by the ion_hash_test_dr
 """
 
 import os
-import tempfile
 
 from ionhashtest.util import IonBuild, NO_OP_BUILD, log_call
 
-RESULTS_FILE_DEFAULT = 'ion-test-driver-results.ion'
+RESULTS_FILE_DEFAULT = 'ion-hash-test-driver-results.ion'
 ION_HASH_TEST_SOURCE = 'https://github.com/amzn/ion-hash-test.git'
 
 # Tools expected to be present on the system. Key: name, value: path. Paths may be overridden using --<name>.
