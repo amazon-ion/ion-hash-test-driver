@@ -176,8 +176,8 @@ class IonHashImplementation(IonResource):
         if not os.path.isfile(self._executable):
             raise ValueError('Executable for %s does not exist.' % self._name)
 
-        with open(os.path.join("build", self._name + ".hashes"), "w") as outfile:
-            for test_file in test_files:
+        for test_file in test_files:
+            with open(os.path.join("build", test_file + "." + self._name + ".hashes"), "w") as outfile:
                 _, stderr = Popen([self._executable, algorithm, test_file], stdin=PIPE, stdout=outfile, stderr=PIPE).communicate()
                 if len(stderr) > 0:
                     print(stderr)
@@ -189,16 +189,16 @@ digest_inconsistent = 0
 
 
 def generate_report(impls, test_files):
-    hash_files = {}
-    for impl in impls:
-        hash_files[impl._name] = open(os.path.join("build", impl._name + ".hashes"))
-
     files = dict()
     for test_file in test_files:
         is_binary = test_file.endswith(".10n")
         with open(test_file, 'rb' if is_binary else 'r') as f:
             content = f.read()
         tests = simpleion.loads(content, single_value=False)
+
+        hash_files = {}
+        for impl in impls:
+            hash_files[impl._name] = open(test_file + "." + impl._name + ".hashes")
 
         digest_comparisons = []
         for test in tests:
@@ -207,8 +207,8 @@ def generate_report(impls, test_files):
         files[test_file] = dict()
         files[test_file]['digests'] = digest_comparisons
 
-    for hash_file in hash_files.values():
-        hash_file.close()
+        for hash_file in hash_files.values():
+            hash_file.close()
 
     summary = dict()
     summary['test_count'] = digest_consistent + digest_inconsistent + digest_no_comparison
@@ -320,7 +320,8 @@ def ion_hash_test_driver(arguments):
         '''
 
 
-        test_files = generate_tests(ion_hash_test_dir, os.path.join(output_root, "build", "tests"))
+        test_files = generate_tests(ion_hash_test_dir, os.path.join(output_root, "build"))
+        print('test_files:', test_files)
 
         for impl in implementations:
             impl.test(test_files, "md5")

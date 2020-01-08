@@ -7,44 +7,49 @@ _ion_prefix = 'ion::'
 _invalid_ion_prefix = 'invalid_ion::'
 
 
-def generate_tests(base_dir, out_filename):
-    text_filename = out_filename + ".ion"
-    text_file = open(text_filename, "w")
+def generate_tests(base_dir, out_dir):
+    return [*generate_tests_ion_hash_tests(base_dir, out_dir), \
+            *generate_tests_big_list_of_naughty_strings(base_dir, out_dir)]
 
-    binary_filename = out_filename + ".10n"
-    binary_file = open(binary_filename, "wb")
 
-    with open(os.path.join(base_dir, "ion_hash_tests.ion")) as f:
-        ion_hash_tests = f.read()
+def generate_tests_ion_hash_tests(base_dir, out_dir):
+    with open(os.path.join(out_dir, "ion_hash_tests.ion"), "w") as text_file, \
+            open(os.path.join(out_dir, "ion_hash_tests.10n"), "wb") as binary_file:
 
-    tests = ion.loads(ion_hash_tests, single_value=False)
-    for test in tests:
-        if 'ion' in test:
-            test_text = ion.dumps(test['ion'], binary=False, omit_version_marker=True)
-            if not ('$0' in test_text):
-                text_file.write(test_text + "\n")
-                test_binary = ion.dumps(test['ion'], binary=True)
-                binary_file.write(test_binary)
-        if '10n' in test:
-            bytes = sexp_to_bytearray(test['10n'])
-            binary_file.write(bytes)
+        with open(os.path.join(base_dir, "ion_hash_tests.ion")) as f:
+            ion_hash_tests = f.read()
 
-    '''
-    with open(os.path.join(base_dir, "big_list_of_naughty_strings.txt")) as f:
-        lines = [line.rstrip('\n') for line in f]
+        tests = ion.loads(ion_hash_tests, single_value=False)
+        for test in tests:
+            if 'ion' in test:
+                test_text = ion.dumps(test['ion'], binary=False, omit_version_marker=True)
+                if not ('$0' in test_text):
+                    text_file.write(test_text + "\n")
+                    test_binary = ion.dumps(test['ion'], binary=True)
+                    binary_file.write(test_binary)
+            if '10n' in test:
+                bytes = sexp_to_bytearray(test['10n'])
+                binary_file.write(bytes)
 
-    def _is_test(string):
-        return not (string == '' or string[0] == '#' or string.startswith(_invalid_ion_prefix))
+        return [text_file.name, binary_file.name]
 
-    for line in filter(_is_test, lines):
-        for test in test_strings_for(line):
-            text_file.write(test + "\n")
-    '''
 
-    text_file.close()
-    binary_file.close()
+def generate_tests_big_list_of_naughty_strings(base_dir, out_dir):
+    with open(os.path.join(out_dir, "big_list_of_naughty_strings.ion"), "w") as text_file, \
+            open(os.path.join(out_dir, "big_list_of_naughty_strings.10n"), "wb") as binary_file:
 
-    return [text_filename, binary_filename]
+        with open(os.path.join(base_dir, "big_list_of_naughty_strings.txt")) as f:
+            lines = [line.rstrip('\n') for line in f]
+
+        for line in lines:
+            if not (line == '' or line[0] == '#' or line.startswith(_invalid_ion_prefix)):
+                for test_text in test_strings_for(line):
+                    if not ('$0' in test_text):
+                        text_file.write(test_text + "\n")
+                        test_binary = ion.dumps(test_text, binary=True)
+                        binary_file.write(test_binary)
+
+        return [text_file.name, binary_file.name]
 
 
 class _TestValue:
