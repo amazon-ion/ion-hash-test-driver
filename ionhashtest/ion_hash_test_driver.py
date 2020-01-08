@@ -47,6 +47,7 @@ Options:
 
 
 """
+from collections import defaultdict
 import os
 import shutil
 from subprocess import check_call, check_output, Popen, PIPE
@@ -183,12 +184,9 @@ class IonHashImplementation(IonResource):
                     print(stderr)
 
 
-digest_no_comparison = 0
-digest_consistent = 0
-digest_inconsistent = 0
-
-
 def generate_report(impls, test_files):
+    counters = defaultdict(int)
+
     files = dict()
     for test_file in test_files:
         is_binary = test_file.endswith(".10n")
@@ -201,20 +199,28 @@ def generate_report(impls, test_files):
             hash_files[impl._name] = open(test_file + "." + impl._name + ".hashes")
 
         digest_comparisons = []
+        file_counters = defaultdict(int)
         for test in tests:
-            compare_test(test, hash_files, digest_comparisons)
+            result = compare_test(test, hash_files, digest_comparisons)
+            file_counters[result] += 1
+            counters[result] += 1
+
+        file_summary = dict()
+        for result, count in file_counters.items():
+            file_summary['digest_' + result] = count
+        file_summary['test_count'] = sum([cnt for cnt in file_counters.values()])
 
         files[test_file] = dict()
         files[test_file]['digests'] = digest_comparisons
+        files[test_file]['file_summary'] = file_summary
 
         for hash_file in hash_files.values():
             hash_file.close()
 
     summary = dict()
-    summary['test_count'] = digest_consistent + digest_inconsistent + digest_no_comparison
-    summary['digest_consistent'] = digest_consistent
-    summary['digest_inconsistent'] = digest_inconsistent
-    summary['digest_no_comparison'] = digest_no_comparison
+    for result, count in counters.items():
+        summary['digest_' + result] = count
+    summary['test_count'] = sum([cnt for cnt in counters.values()])
 
     report = dict()
     report['files'] = files
@@ -223,10 +229,6 @@ def generate_report(impls, test_files):
 
 
 def compare_test(value, hash_files, digest_comparisons):
-    global digest_no_comparison
-    global digest_consistent
-    global digest_inconsistent
-
     digests = {}
     for impl_name, hash_file in hash_files.items():
         digest = hash_file.readline().rstrip()
@@ -239,23 +241,23 @@ def compare_test(value, hash_files, digest_comparisons):
 
     digest_comparison = {}
     if len(digest_set) == 0:
-        digest_comparison['result'] = SymbolToken('no_comparison', None, None)
-        digest_no_comparison += 1
+        result = 'no_comparison'
     elif len(digest_set) == 1:
-        digest_comparison['result'] = SymbolToken('consistent', None, None)
+        result = 'consistent'
         digest_comparison['digest'] = digest_set.pop()
-        digest_consistent += 1
     else:
+        result = 'inconsistent'
         impl_digests = {}
         for impl_name, digest in digests.items():
             impl_digests[impl_name] = digest
 
-        digest_comparison['result'] = SymbolToken('inconsistent', None, None)
         digest_comparison['digests'] = impl_digests
-        digest_inconsistent += 1
 
+    digest_comparison['result'] = SymbolToken(result, None, None)
     digest_comparison['value'] = simpleion.dumps(value, binary=False, omit_version_marker=True)
     digest_comparisons.append(digest_comparison)
+
+    return result
 
 
 def tokenize_description(description, has_name):
