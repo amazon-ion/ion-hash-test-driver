@@ -92,7 +92,7 @@ class IonResource:
             self._build = ION_BUILDS[name]
         except KeyError:
             raise ValueError('No installer for %s.' % name)
-        self._name = name
+        self.name = name
         self._build_dir = None
         self.__build_log = None
         self.__identifier = None
@@ -103,7 +103,7 @@ class IonResource:
     @property
     def identifier(self):
         if self.__identifier is None:
-            raise ValueError('Implementation %s must be installed before receiving an identifier.' % self._name)
+            raise ValueError('Implementation %s must be installed before receiving an identifier.' % self.name)
         return self.__identifier
 
     def __git_clone_revision(self):
@@ -111,7 +111,7 @@ class IonResource:
         # code for that revision is already present. If it is, use the existing code, as it may have already been built.
         tmp_dir_root = os.path.abspath((os.path.join(self.__output_root, 'build', 'tmp')))
         try:
-            tmp_dir = os.path.abspath(os.path.join(tmp_dir_root, self._name))
+            tmp_dir = os.path.abspath(os.path.join(tmp_dir_root, self.name))
             if not os.path.isdir(tmp_dir_root):
                 os.makedirs(tmp_dir_root)
             tmp_log = os.path.abspath(os.path.join(tmp_dir_root, 'tmp_log.txt'))
@@ -122,7 +122,7 @@ class IonResource:
                 log_call(tmp_log, (TOOL_DEPENDENCIES['git'], 'checkout', self.__revision))
                 log_call(tmp_log, (TOOL_DEPENDENCIES['git'], 'submodule', 'update', '--init'))
             commit = check_output((TOOL_DEPENDENCIES['git'], 'rev-parse', '--short', 'HEAD')).strip()
-            self.__identifier = self._name + '_' + commit.decode()
+            self.__identifier = self.name + '_' + commit.decode()
             self._build_dir = os.path.abspath(os.path.join(self.__output_root, 'build', self.__identifier))
             logs_dir = os.path.abspath(os.path.join(self.__output_root, 'build', 'logs'))
             if not os.path.isdir(logs_dir):
@@ -137,11 +137,10 @@ class IonResource:
             shutil.rmtree(tmp_dir_root)
 
     def install(self):
-        print('Installing %s revision %s.' % (self._name, self.__revision))
+        print('Installing %s revision %s.' % (self.name, self.__revision))
         self.__git_clone_revision()
         os.chdir(self._build_dir)
-        print('skipping installation step')
-        #self._build.install(self.__build_log)
+        self._build.install(self.__build_log)
         os.chdir(self.__output_root)
         print('Done installing %s.' % self.identifier)
         return self._build_dir
@@ -155,20 +154,21 @@ class IonHashImplementation(IonResource):
         super(IonHashImplementation, self).__init__(output_root, name, location, revision)
 
     def test(self, test_files, algorithm):
-        print("Running %s..." % self._name)
+        print("Running %s..." % self.name)
 
         if self._build_dir is None:
-            raise ValueError('Implementation %s has not been installed.' % self._name)
+            raise ValueError('Implementation %s has not been installed.' % self.name)
         if self._executable is None:
             if self._build.execute is None:
-                raise ValueError('Implementation %s is not executable.' % self._name)
+                raise ValueError('Implementation %s is not executable.' % self.name)
             self._executable = os.path.abspath(os.path.join(self._build_dir, self._build.execute))
         if not os.path.isfile(self._executable):
-            raise ValueError('Executable for %s does not exist.' % self._name)
+            raise ValueError('Executable for %s does not exist.' % self.name)
 
         for test_file in test_files:
-            with open(os.path.join("build", test_file + "." + self._name + ".hashes"), "w") as outfile:
-                _, stderr = Popen([self._executable, algorithm, test_file], stdin=PIPE, stdout=outfile, stderr=PIPE).communicate()
+            with open(os.path.join("build", test_file + "." + self.name + ".hashes"), "w") as outfile:
+                _, stderr = Popen([self._executable, algorithm, test_file],
+                                  stdin=PIPE, stdout=outfile, stderr=PIPE).communicate()
                 if len(stderr) > 0:
                     print(stderr)
 
@@ -185,7 +185,7 @@ def generate_results(impls, test_files, results_file):
 
         hash_files = {}
         for impl in impls:
-            hash_files[impl._name] = open(test_file + "." + impl._name + ".hashes")
+            hash_files[impl.name] = open(test_file + "." + impl.name + ".hashes")
 
         digest_comparisons = []
         file_counters = defaultdict(int)
@@ -319,4 +319,3 @@ def ion_hash_test_driver(arguments):
 
 if __name__ == '__main__':
     ion_hash_test_driver(docopt(__doc__))
-
