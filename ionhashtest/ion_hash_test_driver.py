@@ -15,9 +15,7 @@
 """Cross-implementation Ion Hash test driver.
 
 Usage:
-    ion_hash_test_driver.py [--implementation <description>]... [--ion-hash-test <description>]...
-                            [--local-only] [--git <path>] [--output-dir <dir>] [--results-file <file>]
-                            [<test_file>]...
+    ion_hash_test_driver.py [--git <path>] [--output-dir <dir>] [--results-file <file>] [<test_file>]...
     ion_hash_test_driver.py (--list)
     ion_hash_test_driver.py (-h | --help)
 
@@ -26,18 +24,7 @@ Options:
 
     -h, --help                          Show this screen.
 
-    -i, --implementation <description>  Test an additional implementation specified by a description of the form
-                                        name,location,revision. Name must match one of the names returned by `--list`.
-                                        Location may be a local path or a URL. Revision is optional, may be either a
-                                        branch name or commit hash, and defaults to `master`.
-
-    -I, --ion-hash-test <description>   Override the default ion-hash-test location by providing a description of the form
-                                        location,revision. Location may be a local path or a URL. Revision is optional,
-                                        may be either a branch name or commit hash, and defaults to `master`.
-
     -l, --list                          List the implementations that can be built by this tool.
-
-    -L, --local-only                    Test using only local implementations specified by `--implementation`.
 
     -o, --output-dir <dir>              Root directory for all of this command's output. [default: .]
 
@@ -57,7 +44,8 @@ from amazon.ion import simpleion
 from amazon.ion.symbols import SymbolToken
 from docopt import docopt
 
-from ionhashtest.config import TOOL_DEPENDENCIES, ION_BUILDS, ION_IMPLEMENTATIONS, ION_HASH_TEST_SOURCE, RESULTS_FILE_DEFAULT
+from ionhashtest.config import TOOL_DEPENDENCIES, ION_BUILDS, ION_IMPLEMENTATIONS, ION_HASH_TEST_SOURCE, \
+    RESULTS_FILE_DEFAULT
 from ionhashtest.util import COMMAND_SHELL, log_call
 from ionhashtest.test_data import generate_tests
 
@@ -306,15 +294,13 @@ def ion_hash_test_driver(arguments):
         if not os.path.exists(output_root):
             os.makedirs(output_root)
 
-        implementations = parse_implementations(arguments['--implementation'], output_root)
-        if not arguments['--local-only']:
-            implementations += parse_implementations(ION_IMPLEMENTATIONS, output_root)
+        implementations = parse_implementations(ION_IMPLEMENTATIONS, output_root)
 
         check_tool_dependencies(arguments)
         for implementation in implementations:
             implementation.install()
 
-        ion_hash_test_source = arguments['--ion-hash-test'] or ION_HASH_TEST_SOURCE
+        ion_hash_test_source = ION_HASH_TEST_SOURCE
         ion_hash_test_dir = IonResource(
             output_root, 'ion-hash-test', *tokenize_description(ion_hash_test_source, has_name=False)
         ).install()
