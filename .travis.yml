@@ -2,7 +2,7 @@ language: python
 python: "3.5"
 install:
   - pip install -r requirements.txt
-  - pip install .
+  - pip install -e .
 script:
   - python ionhashtest/ion_hash_test_driver.py --help
 
