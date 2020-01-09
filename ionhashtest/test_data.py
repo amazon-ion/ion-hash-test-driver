@@ -60,7 +60,7 @@ def generate_tests_ion_hash_tests(base_dir, out_dir):
         for test in tests:
             if 'ion' in test:
                 test_text = ion.dumps(test['ion'], binary=False, omit_version_marker=True)
-                if not ('$0' in test_text):
+                if not ('$0' in test_text):     # https://github.com/amzn/ion-hash-test-driver/issues/1
                     text_file.write(test_text + "\n")
                     test_binary = ion.dumps(test['ion'], binary=True)
                     binary_file.write(test_binary)
@@ -83,12 +83,12 @@ def generate_tests_big_list_of_naughty_strings(base_dir, out_dir):
             lines = [line.rstrip('\n') for line in f]
 
         for line in lines:
+            # https://github.com/amzn/ion-hash-test-driver/issues/2
             if not (line == '' or line[0] == '#' or line.startswith(_invalid_ion_prefix)):
                 for test_text in test_strings_for(line):
-                    if not ('$0' in test_text):
-                        text_file.write(test_text + "\n")
-                        test_binary = ion.dumps(test_text, binary=True)
-                        binary_file.write(test_binary)
+                    text_file.write(test_text + "\n")
+                    test_binary = ion.dumps(test_text, binary=True)
+                    binary_file.write(test_binary)
 
         return [text_file.name, binary_file.name]
 
