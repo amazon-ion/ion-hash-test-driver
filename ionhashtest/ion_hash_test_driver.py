@@ -186,7 +186,7 @@ def generate_results(impls, test_files, results_file):
     {
       files: {
         'ion_hash_tests.ion': {
-          digests: [
+          tests: [
             {
               digest: "0f 50 c5 e5 e8 77 b4 45 1a a9 fe 77 c3 76 cd e4",
               result: consistent,
@@ -200,8 +200,10 @@ def generate_results(impls, test_files, results_file):
           },
         },
         'ion_hash_tests.10n': {
-          digests: [
+          tests: [
             {
+              // when a value is hashed inconsistently, a nested 'digests' struct
+              // presents the hash calculated by each implementation:
               digests: {
                 'ion-hash-java': "0f 50 c5 e5 e8 77 b4 45 1a a9 fe 77 c3 76 cd e4",
                 'ion-hash-js': "[unable to digest]",
@@ -256,7 +258,7 @@ def generate_results(impls, test_files, results_file):
         file_summary['test_count'] = sum([cnt for cnt in file_counters.values()])
 
         files[test_file] = dict()
-        files[test_file]['digests'] = digest_comparisons
+        files[test_file]['tests'] = digest_comparisons
         files[test_file]['file_summary'] = file_summary
 
         for hash_file in hash_files.values():
