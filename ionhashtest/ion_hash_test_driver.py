@@ -36,7 +36,7 @@ Options:
 """
 
 # Please note that there is significant duplication of logic between this project
-# and https://github.com/amzn/ion-hash-test
+# and https://github.com/amzn/ion-test-driver
 
 from collections import defaultdict
 import os
